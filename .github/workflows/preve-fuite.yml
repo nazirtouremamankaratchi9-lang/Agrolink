@@ -1,0 +1,28 @@
+name: Preuve fuite secret
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  fuite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Construire l'image naive
+        run: docker build -t agrolink:naif .
+
+      - name: Prouver la fuite du secret
+        run: |
+          echo "=== docker inspect ==="
+          docker inspect agrolink:naif --format '{{json .Config.Env}}'
+          echo "=== docker history ==="
+          docker history --no-trunc agrolink:naif | grep DB_PASSWORD
+
+      - name: Utilisateur et taille
+        run: |
+          echo "=== Utilisateur d'execution ==="
+          docker run --rm agrolink:naif whoami
+          echo "=== Taille de l'image ==="
+          docker images agrolink:naif
