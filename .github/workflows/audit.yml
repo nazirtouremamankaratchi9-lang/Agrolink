@@ -1,0 +1,27 @@
+name: Audit securite
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Analyse du code (Semgrep)
+        run: |
+          pip install semgrep
+          semgrep scan --config p/python --config p/owasp-top-ten --metrics=off . || true
+
+      - name: Analyse du Dockerfile (Hadolint)
+        run: |
+          docker run --rm -i hadolint/hadolint < Dockerfile || true
+
+      - name: Construire l'image
+        run: docker build -t agrolink:naif .
+
+      - name: Scan de l'image (Trivy)
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.57.1 image --severity HIGH,CRITICAL agrolink:naif || true
