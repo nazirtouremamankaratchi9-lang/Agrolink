@@ -1,8 +1,17 @@
-import sqlite3, pickle, base64
-from flask import Flask, request
+import os, re, json, sqlite3
+from flask import Flask, request, abort
+from markupsafe import escape
 
 app = Flask(_name_)
-DB_PASSWORD = "AgroLink2024!"
+# Le secret vient de l'environnement, jamais du code
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
+
+NOM_VALIDE = re.compile(r"^[A-Za-zÀ-ÿ '\-]{1,50}$")
+
+def nom_valide(nom):
+    if not NOM_VALIDE.fullmatch(nom):
+        abort(400, "Nom invalide")
+    return nom
 
 def db():
     c = sqlite3.connect(":memory:")
@@ -14,21 +23,4 @@ def db():
 def accueil():
     return "AgroLink"
 
-@app.route("/produit")
-def produit():
-    nom = request.args.get("nom", "")
-    rows = db().execute("SELECT * FROM produits WHERE nom = '" + nom + "'").fetchall()
-    return str(rows)
 
-@app.route("/bonjour")
-def bonjour():
-    nom = request.args.get("nom", "")
-    return "<h1>Bonjour " + nom + "</h1>"
-
-@app.route("/import", methods=["POST"])
-def importer():
-    data = base64.b64decode(request.form["data"])
-    return str(pickle.loads(data))
-
-if _name_ == "_main_":
-    app.run(host="0.0.0.0", port=5000)
